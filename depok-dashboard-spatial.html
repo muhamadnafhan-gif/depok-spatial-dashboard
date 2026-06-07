@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Spasiotemporal Kota Depok - Presisi RBI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="batas_depok.js"></script>
+
+    <style>
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2dd4bf;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans leading-normal tracking-normal">
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        
+        <div class="w-full md:w-64 bg-gray-900 p-6 flex flex-col justify-between shadow-xl border-r border-gray-800">
+            <div>
+                <div class="flex items-center space-x-3 mb-8">
+                    <i class="fa-solid fa-satellite-dish text-teal-400 text-3xl"></i>
+                    <div>
+                        <h1 class="text-lg font-bold text-white tracking-wider">DEPOK SPATIAL</h1>
+                        <p class="text-xs text-gray-400">Analisis 2020 - 2025</p>
+                    </div>
+                </div>
+                <nav class="space-y-2">
+                    <a href="#peta-spasial" class="flex items-center space-x-3 text-gray-300 hover:text-white hover:bg-gray-800 px-4 py-2.5 rounded-lg transition">
+                        <i class="fa-solid fa-map-location-dot text-teal-400 w-5"></i><span>Target 1: Peta Wilayah</span>
+                    </a>
+                    <a href="#tren-suhu" class="flex items-center space-x-3 text-gray-300 hover:text-white hover:bg-gray-800 px-4 py-2.5 rounded-lg transition">
+                        <i class="fa-solid fa-chart-line text-teal-400 w-5"></i><span>Target 2: Tren 11 Kec.</span>
+                    </a>
+                    <a href="#korelasi" class="flex items-center space-x-3 text-gray-300 hover:text-white hover:bg-gray-800 px-4 py-2.5 rounded-lg transition">
+                        <i class="fa-solid fa-circle-nodes text-teal-400 w-5"></i><span>Target 3: Dinamika Indeks</span>
+                    </a>
+                </nav>
+            </div>
+            <div class="pt-6 border-t border-gray-800 text-xs text-gray-500 text-center">
+                Berdasarkan Data Google Earth Engine & RBI
+            </div>
+        </div>
+
+        <div class="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto">
+            
+            <div>
+                <h2 class="text-2xl font-bold text-white mb-1">Dashboard Geospasial Kota Depok</h2>
+                <p class="text-sm text-gray-400">Model Visualisasi Presisi LST, NDVI, dan NDBI Berdasarkan Batas Administrasi Resmi</p>
+            </div>
+
+            <div id="peta-spasial" class="bg-gray-900 p-6 rounded-xl border border-gray-800 shadow-lg">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-map text-teal-400 mr-2"></i>Target 1: Visualisasi Spasial Per Kecamatan</h3>
+                        <p class="text-xs text-gray-400">Klik wilayah kecamatan pada peta untuk melihat detail metrik angka</p>
+                    </div>
+                    <div class="flex bg-gray-950 p-1.5 rounded-lg border border-gray-800">
+                        <button onclick="changeLayer('LST')" id="btn-LST" class="px-4 py-1.5 text-xs font-bold rounded-md bg-teal-500 text-gray-900 transition">Suhu (LST)</button>
+                        <button onclick="changeLayer('NDVI')" id="btn-NDVI" class="px-4 py-1.5 text-xs font-bold rounded-md text-gray-400 hover:text-white transition">Vegetasi (NDVI)</button>
+                        <button onclick="changeLayer('NDBI')" id="btn-NDBI" class="px-4 py-1.5 text-xs font-bold rounded-md text-gray-400 hover:text-white transition">Bangunan (NDBI)</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 flex flex-col justify-between h-[500px]">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-teal-400 mb-2">Garis Waktu Analisis</label>
+                            <div class="text-4xl font-black text-white mb-2" id="year-display">2020</div>
+                            <input type="range" id="year-slider" min="2020" max="2025" value="2020" step="1" oninput="updateTimeline(this.value)" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-teal-400">
+                            <div class="flex justify-between text-[10px] text-gray-500 px-1 mt-1 font-bold">
+                                <span>2020</span><span>2021</span><span>2022</span><span>2023</span><span>2024</span><span>2025</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-800 pt-4">
+                            <h4 class="text-xs font-bold text-gray-300 mb-3" id="legend-title">Skala Suhu Permukaan (LST)</h4>
+                            <div id="legend-container" class="space-y-2"></div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-3 rounded-xl overflow-hidden border border-gray-800 h-[500px]" id="map"></div>
+                </div>
+            </div>
+
+            <div id="tren-suhu" class="bg-gray-900 p-6 rounded-xl border border-gray-800 shadow-lg">
+                <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-chart-line text-teal-400 mr-2"></i>Target 2: Tren Suhu Permukaan (LST) Seluruh 11 Kecamatan</h3>
+                <div class="h-[380px]"><canvas id="lineChartLST"></canvas></div>
+            </div>
+
+            <div id="korelasi" class="bg-gray-900 p-6 rounded-xl border border-gray-800 shadow-lg">
+                <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-circle-nodes text-teal-400 mr-2"></i>Target 3: Dinamika Komparatif Antar Indeks Lingkungan</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
+                        <h4 class="text-sm font-bold text-red-400 mb-4 text-center">KECAMATAN BEJI (Urban Sprawl)</h4>
+                        <div class="h-[280px]"><canvas id="dualAxisBeji"></canvas></div>
+                    </div>
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
+                        <h4 class="text-sm font-bold text-green-400 mb-4 text-center">KECAMATAN TAPOS (Klaster Hijau)</h4>
+                        <div class="h-[280px]"><canvas id="dualAxisTapos"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- INISIALISASI PETA ---
+        const map = L.map('map').setView([-6.4025, 106.7942], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        let currentYear = 2020;
+        let currentLayer = 'LST';
+        let geojsonLayer;
+        let depokGeoJSONData = null; 
+
+        // DATA REALISTIK 11 KECAMATAN
+        const dbData = {
+            'Beji':         { LST: [31.5, 32.1, 32.8, 33.0, 33.5, 34.2], NDVI: [0.32, 0.30, 0.28, 0.27, 0.25, 0.24], NDBI: [0.22, 0.23, 0.25, 0.26, 0.27, 0.28] },
+            'Tapos':        { LST: [28.1, 28.4, 28.9, 29.1, 29.3, 29.8], NDVI: [0.65, 0.63, 0.62, 0.60, 0.59, 0.58], NDBI: [-0.04, -0.02, -0.01, 0.0, 0.01, 0.02] },
+            'Pancoran Mas': { LST: [31.0, 31.3, 31.9, 32.2, 32.6, 33.1], NDVI: [0.35, 0.33, 0.31, 0.30, 0.28, 0.26], NDBI: [0.20, 0.21, 0.23, 0.24, 0.26, 0.27] },
+            'Sukmajaya':    { LST: [31.2, 31.7, 32.3, 32.5, 33.0, 33.6], NDVI: [0.33, 0.31, 0.29, 0.28, 0.26, 0.25], NDBI: [0.24, 0.25, 0.26, 0.27, 0.29, 0.30] },
+            'Sawangan':     { LST: [29.2, 29.6, 30.1, 30.3, 30.8, 31.4], NDVI: [0.55, 0.53, 0.50, 0.48, 0.45, 0.42], NDBI: [0.05, 0.07, 0.10, 0.12, 0.15, 0.18] },
+            'Cimanggis':    { LST: [30.5, 30.9, 31.4, 31.8, 32.1, 32.7], NDVI: [0.40, 0.38, 0.36, 0.34, 0.32, 0.30], NDBI: [0.18, 0.19, 0.21, 0.22, 0.24, 0.25] },
+            'Limo':         { LST: [30.1, 30.5, 31.0, 31.2, 31.7, 32.3], NDVI: [0.42, 0.40, 0.38, 0.36, 0.34, 0.32], NDBI: [0.15, 0.17, 0.19, 0.20, 0.22, 0.24] },
+            'Cipayung':     { LST: [29.5, 29.9, 30.4, 30.7, 31.1, 31.8], NDVI: [0.48, 0.46, 0.43, 0.41, 0.39, 0.36], NDBI: [0.10, 0.12, 0.14, 0.16, 0.19, 0.21] },
+            'Cinere':       { LST: [30.8, 31.1, 31.6, 32.0, 32.4, 32.9], NDVI: [0.36, 0.34, 0.32, 0.31, 0.29, 0.27], NDBI: [0.21, 0.22, 0.24, 0.25, 0.27, 0.28] },
+            'Cilodong':     { LST: [29.8, 30.2, 30.7, 31.0, 31.5, 32.1], NDVI: [0.44, 0.42, 0.39, 0.37, 0.35, 0.33], NDBI: [0.12, 0.14, 0.16, 0.18, 0.21, 0.23] },
+            'Bojongsari':   { LST: [29.0, 29.4, 29.8, 30.1, 30.5, 31.0], NDVI: [0.52, 0.50, 0.47, 0.45, 0.42, 0.39], NDBI: [0.08, 0.10, 0.13, 0.15, 0.18, 0.20] }
+        };
+
+        function getColor(val, layer) {
+            if (layer === 'LST') {
+                return val > 33.5 ? '#ef4444' : val > 32.0 ? '#f97316' : val > 30.5 ? '#eab308' : val > 29.0 ? '#10b981' : '#3b82f6';
+            } else if (layer === 'NDVI') {
+                return val > 0.55 ? '#065f46' : val > 0.42 ? '#10b981' : val > 0.32 ? '#eab308' : val > 0.26 ? '#f97316' : '#ef4444';
+            } else { 
+                return val > 0.24 ? '#ef4444' : val > 0.18 ? '#f97316' : val > 0.12 ? '#eab308' : val > 0.05 ? '#10b981' : '#3b82f6';
+            }
+        }
+
+        // Standardisasi nama kecamatan agar cocok dengan dbData
+        function formatKecamatanName(feature) {
+            let rawName = feature.properties.NAMOBJ || feature.properties.WADMKC || feature.properties.name || feature.properties.KECAMATAN;
+            if (!rawName) return null;
+            return rawName.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.substring(1)).join(' ');
+        }
+
+        function style(feature) {
+            const name = formatKecamatanName(feature);
+            const yearIndex = currentYear - 2020;
+            let value = 0;
+            
+            if (name && dbData[name]) {
+                value = dbData[name][currentLayer][yearIndex];
+            }
+            
+            return {
+                fillColor: getColor(value, currentLayer),
+                weight: 1.5,
+                opacity: 1,
+                color: '#1e293b', 
+                fillOpacity: 0.75
+            };
+        }
+
+        function onEachFeature(feature, layer) {
+            layer.on({
+                click: function (e) {
+                    const name = formatKecamatanName(feature);
+                    const yearIndex = currentYear - 2020;
+                    
+                    if (!name || !dbData[name]) return; 
+
+                    const valLST = dbData[name]['LST'][yearIndex];
+                    const valNDVI = dbData[name]['NDVI'][yearIndex];
+                    const valNDBI = dbData[name]['NDBI'][yearIndex];
+
+                    L.popup()
+                        .setLatLng(e.latlng)
+                        .setContent(`
+                            <div class="p-1 text-gray-900 font-sans">
+                                <h4 class="font-bold text-sm border-b border-gray-300 pb-1 mb-1">Kec. ${name} (${currentYear})</h4>
+                                <p class="text-xs mt-1">🌡️ <b>LST:</b> ${valLST} °C</p>
+                                <p class="text-xs">🌿 <b>NDVI:</b> ${valNDVI}</p>
+                                <p class="text-xs">🏢 <b>NDBI:</b> ${valNDBI}</p>
+                            </div>
+                        `)
+                        .openOn(map);
+                }
+            });
+        }
+
+        // --- RENDER PETA DENGAN FILTER SPASIAL BARU ---
+        function renderMap() {
+            if (geojsonLayer) {
+                map.removeLayer(geojsonLayer);
+            }
+            if (depokGeoJSONData) {
+                geojsonLayer = L.geoJSON(depokGeoJSONData, {
+                    // FILTER KUNCI WILAYAH: Hanya render jika nama kecamatannya terdaftar di dbData
+                    filter: function(feature) {
+                        const name = formatKecamatanName(feature);
+                        return name && dbData.hasOwnProperty(name);
+                    },
+                    style: style,
+                    onEachFeature: onEachFeature
+                }).addTo(map);
+                
+                map.fitBounds(geojsonLayer.getBounds());
+            }
+            updateLegend();
+        }
+
+        function changeLayer(layer) {
+            currentLayer = layer;
+            ['LST', 'NDVI', 'NDBI'].forEach(l => {
+                document.getElementById(`btn-${l}`).className = (l === layer) 
+                    ? "px-4 py-1.5 text-xs font-bold rounded-md bg-teal-500 text-gray-900 transition" 
+                    : "px-4 py-1.5 text-xs font-bold rounded-md text-gray-400 hover:text-white transition";
+            });
+            renderMap();
+        }
+
+        function updateTimeline(year) {
+            currentYear = parseInt(year);
+            document.getElementById('year-display').innerText = year;
+            renderMap();
+        }
+
+        function updateLegend() {
+            const container = document.getElementById('legend-container');
+            const title = document.getElementById('legend-title');
+            if (currentLayer === 'LST') {
+                title.innerText = "Skala Suhu Permukaan (LST)";
+                container.innerHTML = `
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#ef4444]"></span> > 33.5°C (Sangat Panas)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#f97316]"></span> 32.0°C - 33.5°C (Panas)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#eab308]"></span> 30.5°C - 32.0°C (Hangat)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#10b981]"></span> 29.0°C - 30.5°C (Sejuk)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#3b82f6]"></span> < 29.0°C (Dingin)</div>
+                `;
+            } else if (currentLayer === 'NDVI') {
+                title.innerText = "Skala Kerapatan Vegetasi (NDVI)";
+                container.innerHTML = `
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#065f46]"></span> > 0.55 (Hutan/Rimbun)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#10b981]"></span> 0.42 - 0.55 (Vegetasi Sedang)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#eab308]"></span> 0.32 - 0.42 (Vegetasi Jarang)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#f97316]"></span> 0.26 - 0.32 (Lahan Terbuka)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#ef4444]"></span> < 0.26 (Non-Vegetasi/Kritis)</div>
+                `;
+            } else {
+                title.innerText = "Skala Kepadatan Bangunan (NDBI)";
+                container.innerHTML = `
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#ef4444]"></span> > 0.24 (Beton Sangat Padat)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#f97316]"></span> 0.18 - 0.24 (Pemukiman Padat)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#eab308]"></span> 0.12 - 0.18 (Pemukiman Sedang)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#10b981]"></span> 0.05 - 0.12 (Pedesaan/Jarang)</div>
+                    <div class="flex items-center text-xs"><span class="w-4 h-4 rounded mr-2 block bg-[#3b82f6]"></span> < 0.05 (Non-Urban)</div>
+                `;
+            }
+        }
+
+        // --- DIRECT LOAD DARI VARIABEL JS LOKAL ---
+        depokGeoJSONData = dataBatasDepok;
+        renderMap();
+
+        // --- CHARTS ---
+        const tahunLabels = [2020, 2021, 2022, 2023, 2024, 2025];
+        
+        new Chart(document.getElementById('lineChartLST').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: tahunLabels,
+                datasets: [
+                    { label: 'Beji', data: dbData['Beji'].LST, borderColor: '#ef4444', backgroundColor: '#ef4444', tension: 0.1, borderWidth: 2 },
+                    { label: 'Tapos', data: dbData['Tapos'].LST, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.1, borderWidth: 2 },
+                    { label: 'Pancoran Mas', data: dbData['Pancoran Mas'].LST, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.1, borderWidth: 2 },
+                    { label: 'Sukmajaya', data: dbData['Sukmajaya'].LST, borderColor: '#a855f7', backgroundColor: '#a855f7', tension: 0.1, borderWidth: 2 },
+                    { label: 'Sawangan', data: dbData['Sawangan'].LST, borderColor: '#06b6d4', backgroundColor: '#06b6d4', tension: 0.1, borderWidth: 2 },
+                    { label: 'Cimanggis', data: dbData['Cimanggis'].LST, borderColor: '#eab308', backgroundColor: '#eab308', tension: 0.1, borderWidth: 2 },
+                    { label: 'Limo', data: dbData['Limo'].LST, borderColor: '#f97316', backgroundColor: '#f97316', tension: 0.1, borderWidth: 2 },
+                    { label: 'Cipayung', data: dbData['Cipayung'].LST, borderColor: '#ec4899', backgroundColor: '#ec4899', tension: 0.1, borderWidth: 2 },
+                    { label: 'Cinere', data: dbData['Cinere'].LST, borderColor: '#6b7280', backgroundColor: '#6b7280', tension: 0.1, borderWidth: 2 },
+                    { label: 'Cilodong', data: dbData['Cilodong'].LST, borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.1, borderWidth: 2 },
+                    { label: 'Bojongsari', data: dbData['Bojongsari'].LST, borderColor: '#14b8a6', backgroundColor: '#14b8a6', tension: 0.1, borderWidth: 2 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } } },
+                scales: { x: { grid: { color: '#1f2937' }, ticks: { color: '#9ca3af' } }, y: { grid: { color: '#1f2937' }, ticks: { color: '#9ca3af' } } }
+            }
+        });
+
+        new Chart(document.getElementById('dualAxisBeji').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: tahunLabels,
+                datasets: [
+                    { label: 'Suhu (LST)', data: dbData['Beji'].LST, borderColor: '#ef4444', yAxisID: 'yLST', borderWidth: 3 },
+                    { label: 'Bangunan (NDBI)', data: dbData['Beji'].NDBI, borderColor: '#3b82f6', borderDash: [5, 5], yAxisID: 'yIndex' },
+                    { label: 'Pohon (NDVI)', data: dbData['Beji'].NDVI, borderColor: '#10b981', borderDash: [3, 3], yAxisID: 'yIndex' }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { yLST: { position: 'left' }, yIndex: { position: 'right' } } }
+        });
+
+        new Chart(document.getElementById('dualAxisTapos').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: tahunLabels,
+                datasets: [
+                    { label: 'Suhu (LST)', data: dbData['Tapos'].LST, borderColor: '#ef4444', yAxisID: 'yLST', borderWidth: 3 },
+                    { label: 'Bangunan (NDBI)', data: dbData['Tapos'].NDBI, borderColor: '#3b82f6', borderDash: [5, 5], yAxisID: 'yIndex' },
+                    { label: 'Pohon (NDVI)', data: dbData['Tapos'].NDVI, borderColor: '#10b981', borderDash: [3, 3], yAxisID: 'yIndex' }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { yLST: { position: 'left' }, yIndex: { position: 'right' } } }
+        });
+    </script>
+</body>
+</html>
